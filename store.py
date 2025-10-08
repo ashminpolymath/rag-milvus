@@ -22,28 +22,38 @@ class MilvusStore:
         if file_path.lower().endswith('.pdf'):
             with open(file_path, 'rb') as pdf_file:
                 pdf_reader = PyPDF2.PdfReader(pdf_file)
-                content = ""
-                for page in pdf_reader.pages:
-                    content += page.extract_text()
+                for i, page in enumerate(pdf_reader.pages):
+                    content = page.extract_text()
+                    embedding = ai_client.embed_text(content)
+                    data = [{
+                        "id": hash(file_name + str(i)),
+                        "vector": embedding,
+                        "text": content,
+                        "page_number": i + 1,
+                        "file_name": file_name
+                    }]
+                    self.client.insert(
+                        collection_name=self.collection_name, data=data)
         elif file_path.lower().endswith('.txt'):
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
+                embedding = ai_client.embed_text(content)
+                data = [{
+                    "id": hash(file_name),
+                    "vector": embedding,
+                    "text": content,
+                    "file_name": file_name
+                }]
+                self.client.insert(
+                    collection_name=self.collection_name, data=data)
         else:
             raise ValueError(f"Unsupported file type: {file_path}")
 
-        embedding = ai_client.embed_text(content)
-        data = [{
-            "id": hash(file_name),
-            "vector": embedding,
-            "text": content
-        }]
-
-        self.client.insert(collection_name=self.collection_name, data=data)
         self.client.flush(self.collection_name)
 
     def search_query(self, question: str, top_k: int):
         retrieved_data = self.client.search(collection_name=self.collection_name, data=[ai_client.embed_text(
-            question)], limit=top_k, search_params={"metric_type": "COSINE", "params": {}}, output_fields=["text"])
+            question)], limit=top_k, search_params={"metric_type": "COSINE", "params": {}}, output_fields=["text", "page_number", "file_name"])
         return retrieved_data
 
 

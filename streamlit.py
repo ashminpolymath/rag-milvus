@@ -174,7 +174,7 @@ with tab2:
     uploaded_files = st.file_uploader(
         "Choose files to upload",
         accept_multiple_files=True,
-        type=["txt", "pdf", "docx", "md"]  # Limit to text-based file types
+        type=["txt", "pdf"]  # Limit to text-based file types
     )
 
     # Process the upload when button is clicked and files are selected
@@ -206,7 +206,6 @@ with tab2:
                 response = requests.post(
                     f"{API_URL}/upload",
                     files=files_to_upload,
-                    timeout=10  # Set a reasonable timeout
                 )
 
                 # Check if the upload was successful

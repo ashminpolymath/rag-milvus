@@ -99,11 +99,16 @@ async def chat(payload: MessagesPayload):
         # Search for relevant documents in Milvus
         search_results = milvus_store.search_query(
             question=user_message.content, top_k=3)
-        print("Search Results:", search_results)
+        # print("Search Results:", search_results)
 
         # Compile the response with retrieved documents
         retrieved_lines_with_distances = [
-            (res["entity"]["text"], res["distance"]) for res in search_results[0]
+            (
+                res["entity"]["text"],
+                res["distance"],
+                res["entity"].get("page_number"),
+                res["entity"].get("file_name")
+            ) for res in search_results[0]
         ]
 
         context = "\n".join(
@@ -115,6 +120,16 @@ async def chat(payload: MessagesPayload):
             context=context,
             question=user_message.content,
             history=[msg.content for msg in payload.messages[:-1]]
+        )
+
+        print(retrieved_lines_with_distances)
+
+        response += "\n\nSources:\n" + "\n".join(
+            [
+                f"- {f'Page: {line_with_distance[2]} ' if line_with_distance[2] is not None and line_with_distance[2] != '' else ''}File: {
+                    line_with_distance[3]}"
+                for line_with_distance in retrieved_lines_with_distances
+            ]
         )
 
         return {"data": response}
